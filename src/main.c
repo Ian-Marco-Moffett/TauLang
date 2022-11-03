@@ -6,8 +6,14 @@
 char* in_buf = NULL;
 FILE* g_fp;
 
-void compile_file(void) {
+static void compile(void) {
   parse();
+}
+
+
+static void _on_exit(void) {
+  fclose(g_fp);
+  free(in_buf);
 }
 
 
@@ -32,7 +38,9 @@ int main(int argc, char** argv) {
   in_buf = calloc(size, sizeof(char));
   fread(in_buf, sizeof(char), size, g_fp);
 
-  compile_file();
+  atexit(_on_exit);
+
+  compile();
 
   return 0;
 }
