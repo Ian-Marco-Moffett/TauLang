@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <parser.h>
 
-FILE* g_fp;
 
+char* in_buf = NULL;
+FILE* g_fp;
 
 void compile_file(void) {
   parse();
@@ -24,6 +25,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  fseek(g_fp, 0, SEEK_END);
+  size_t size = ftell(g_fp);
+  fseek(g_fp, 0, SEEK_SET);
+
+  in_buf = calloc(size, sizeof(char));
+  fread(in_buf, sizeof(char), size, g_fp);
 
   compile_file();
 

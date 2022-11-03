@@ -4,5 +4,5 @@
 static struct token last_token;
 
 void parse(void) {
-  scan(&last_token);
+  while (scan(&last_token));
 }
