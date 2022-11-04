@@ -3,6 +3,7 @@
 #include <lexer.h>
 #include <def.h>
 #include <panic.h>
+#include <codegen.h>
 #include <ast.h>
 
 #define PARSE_DEBUG 0
@@ -110,8 +111,11 @@ INTLIT test_ast(struct ast_node* tree) {
 
 void parse(void) {
   SCAN;
+  codegen_init();
   while (!(is_eof)) {
     struct ast_node* tree = binexpr();
-    printf("RESULT=%d\n", test_ast(tree));
+    gen_code(tree);
   }
+
+  epilouge();
 }
