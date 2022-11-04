@@ -2,9 +2,8 @@
 #define LEXER_H_
 
 #include <stdint.h>
-
-typedef uint64_t INTLIT;
-
+#include <stddef.h>
+#include <def.h>
 
 typedef enum {
   TT_PLUS,
@@ -17,6 +16,7 @@ typedef enum {
 struct token {
   TOKEN_TYPE type;
   INTLIT val_int;
+  size_t line;
 };
 
 uint8_t scan(struct token* t);

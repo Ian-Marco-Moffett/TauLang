@@ -3,7 +3,6 @@
 #include <parser.h>
 
 
-char* in_buf = NULL;
 FILE* g_fp;
 
 static void compile(void) {
@@ -13,7 +12,6 @@ static void compile(void) {
 
 static void _on_exit(void) {
   fclose(g_fp);
-  free(in_buf);
 }
 
 
@@ -31,15 +29,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  fseek(g_fp, 0, SEEK_END);
-  size_t size = ftell(g_fp);
-  fseek(g_fp, 0, SEEK_SET);
-
-  in_buf = calloc(size, sizeof(char));
-  fread(in_buf, sizeof(char), size, g_fp);
-
   atexit(_on_exit);
-
   compile();
 
   return 0;
