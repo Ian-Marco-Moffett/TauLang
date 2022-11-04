@@ -4,6 +4,7 @@
 #include <def.h>
 #include <panic.h>
 #include <codegen.h>
+#include <symbol.h>
 #include <ast.h>
 
 #define PARSE_DEBUG 0
@@ -12,6 +13,16 @@ static struct token last_token;
 static uint8_t is_eof = 0;
 
 #define SCAN is_eof = !scan(&last_token)
+
+static inline void passert(TOKEN_TYPE type, const char* what) {
+  if (last_token.type != type) {
+    printf(PANIC "Expected \"%s\" (line %d).\n", what, last_token.line);
+#if PARSE_DEBUG
+    printf(PANIC "TOKEN=%d\n", last_token.type);
+#endif
+    panic();
+  }
+}
 
 static NODE_TYPE arithop(TOKEN_TYPE tok) {
   switch (tok) {
@@ -70,7 +81,7 @@ struct ast_node* binexpr(void) {
 
   struct ast_node* left = primary_factor();
 
-  if (is_eof)
+  if (is_eof || last_token.type == TT_RPAREN || last_token.type == TT_SEMI)
     return left;
 
   NODE_TYPE node_type = arithop(last_token.type);
@@ -84,38 +95,68 @@ struct ast_node* binexpr(void) {
   return n;
 }
 
-INTLIT test_ast(struct ast_node* tree) {
-  INTLIT leftval, rightval;
+/*
+ *  Parse a compound statement.
+ * 
+ */
 
-  if (tree->left)
-    leftval = test_ast(tree->left);
+static struct ast_node* compound_statement(void) {
+  struct ast_node* tree = NULL;
 
-  if (tree->right)
-    rightval = test_ast(tree->right);
+  /*
+   *  There are no other statements
+   *  for now, TODO: Add more statements.
+   *
+   */
+  passert(TT_LBRACE, "{");
+  SCAN;
+  passert(TT_RBRACE, "}");
+  SCAN;
 
-  switch (tree->op) {
-    case A_ADD:
-      return leftval + rightval;
-    case A_SUB:
-      return leftval - rightval;
-    case A_MUL:
-      return leftval * rightval;
-    case A_DIV:
-      return leftval / rightval;
-    case A_INTLIT:
-      return tree->val_int;
+  return tree;
+}
+
+/*
+ *  Parse functions.
+ *  
+ */
+
+static struct ast_node* function(void) {
+  uint8_t is_global = 0;
+
+  if (last_token.type == TT_GLOBAL) {
+    is_global = 1;
+    SCAN;
   }
 
-  return 0;
+  passert(TT_ID, "identifier");
+  SCAN;
+
+
+  size_t symbol_slot = symtbl_push_glob(scanner_idbuf, S_FUNCTION);
+  g_symtbl[symbol_slot].is_global = is_global;
+
+  passert(TT_LPAREN, "(");
+  SCAN;
+
+  passert(TT_RPAREN, ")");
+  SCAN;
+
+  struct ast_node* block_statement = compound_statement();
+  return mkastunary(A_FUNC, block_statement, symbol_slot);
 }
+
 
 void parse(void) {
   SCAN;
   codegen_init();
+  init_symtbls();
   while (!(is_eof)) {
-    struct ast_node* tree = binexpr();
-    gen_code(tree);
-  }
+    struct ast_node* tree = function();
 
-  epilouge();
+    if (tree != NULL)
+      gen_code(tree);
+    else
+      break;
+  }
 }

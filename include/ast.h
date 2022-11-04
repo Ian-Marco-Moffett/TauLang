@@ -8,7 +8,8 @@ typedef enum {
   A_SUB,
   A_MUL,
   A_DIV,
-  A_INTLIT
+  A_INTLIT,
+  A_FUNC,
 } NODE_TYPE;
 
 
@@ -16,7 +17,11 @@ struct ast_node {
   NODE_TYPE op;
   struct ast_node* left;
   struct ast_node* right;
-  INTLIT val_int; 
+
+  union {
+    INTLIT val_int; 
+    uint64_t id;
+  };
 };
 
 void ast_destroy(void);
