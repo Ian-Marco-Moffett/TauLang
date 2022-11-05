@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <parser.h>
+#include <ast.h>
+#include <panic.h>
 
 
 FILE* g_fp;
@@ -16,6 +18,9 @@ static void _on_exit(void) {
 
   if (g_outfile != NULL)
     fclose(g_outfile);
+
+  // Just to cleanup.
+  panic();
 }
 
 

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <symbol.h>
 #include <lexer.h>
+#include <ast.h>
 
 extern struct symbol* g_symtbl;
 extern size_t g_symtbl_size;
@@ -19,5 +20,7 @@ void panic(void) {
   if (g_symtbl != NULL) {
     free(g_symtbl);
   }
+
+  ast_destroy();
   exit(1);
 }
