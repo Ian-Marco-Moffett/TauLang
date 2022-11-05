@@ -13,4 +13,8 @@ REG reg_sub(REG r1, REG r2);
 REG reg_div(REG r1, REG r2);
 void freeall_regs(void);
 
+
+extern const char* rregs[4];
+extern const char* bregs[4];
+
 #endif

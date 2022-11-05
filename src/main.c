@@ -3,6 +3,31 @@
 #include <parser.h>
 #include <ast.h>
 #include <panic.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <symbol.h>
+#include <lexer.h>
+#include <ast.h>
+
+extern struct symbol* g_symtbl;
+extern size_t g_symtbl_size;
+
+static void cleanup(void) {
+  for (size_t i = 0; i < g_symtbl_size; ++i) {
+    if (g_symtbl != NULL)
+      free((char*)g_symtbl[i].name);
+  }
+
+  if (scanner_textbuf != NULL)
+    free(scanner_textbuf);
+
+  if (g_symtbl != NULL) {
+    free(g_symtbl);
+  }
+
+  ast_destroy();
+  exit(1);
+}
 
 
 FILE* g_fp;
@@ -14,9 +39,8 @@ static void compile(void) {
 
 static void _on_exit(void) {
   fclose(g_fp);
-
-  // Just to cleanup.
-  panic();
+  
+  cleanup();
 }
 
 

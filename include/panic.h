@@ -4,7 +4,5 @@
 #define PANIC "\e[0;31mError: "
 
 
-void panic(void);
-
 
 #endif

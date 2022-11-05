@@ -12,6 +12,7 @@ typedef enum {
   A_FUNC,
   A_INLINE_ASM,
   A_GLUE,
+  A_RETURN,
 } NODE_TYPE;
 
 

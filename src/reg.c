@@ -3,7 +3,8 @@
 #include <stdint.h>
 
 
-static const char* rregs[4] = {"r8", "r9", "r10", "r11"};
+const char* rregs[4] = {"r8", "r9", "r10", "r11"};
+const char* bregs[4] = {"r8b", "r9b", "r10b", "r11b"};
 static uint8_t regbmp = 0xFF;
 
 

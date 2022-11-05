@@ -16,6 +16,8 @@ void ast_destroy(void) {
     return;
 
   for (size_t i = 0; i < nodes_idx; ++i) {
+    if (nodes[i]->text != NULL)
+      free((char*)nodes[i]->text);
     free(nodes[i]);
   }
 
@@ -28,7 +30,7 @@ struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node*
     nodes = malloc(sizeof(struct ast_node*));
     if (nodes == NULL) {
       printf(PANIC "__INTERNAL_ERROR__: could not allocate memory for nodes in %s()\n", __func__);
-      panic();
+      exit(1);
     }
   }
 
@@ -36,7 +38,7 @@ struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node*
   
   if (n == NULL) {
     printf(PANIC "__INTERNAL_ERROR__: could not allocate memory for node in %s()\n", __func__);
-    panic();
+    exit(1);
   }
 
   n->op = op;
@@ -44,6 +46,7 @@ struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node*
   n->mid = mid;
   n->right = right;
   n->val_int = val_int;
+  n->text = NULL;
   push(n);
   return n;
 }

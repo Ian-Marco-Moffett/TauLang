@@ -40,7 +40,7 @@ static INTLIT scanint(char c) {
   do {
     if (buf_idx >= sizeof(buf)-1) {
       printf(PANIC "Too many digits for integer literal! (line %d)\n", line);
-      panic();
+      exit(1);
     }
 
     buf[buf_idx++] = c;
@@ -60,15 +60,15 @@ static INTLIT scanint(char c) {
 
 static void scan_id(char c, char* buf) {
   size_t buf_idx = 0;
-
+  
   while (1) {
-    if (c != '_' && !(ISALPHA(c))) {
+    if (c != '_' && !(ISALPHA(c)) && !(ISDIGIT(c))) {
       break;
     }
 
     if (buf_idx >= MAX_ID_LENGTH-2) {
       printf(PANIC "Identifier max length reached (line %d)\n", line);
-      panic();
+      exit(1);
     }
   
     buf[buf_idx++] = c;
@@ -91,7 +91,7 @@ static void scan_str(void) {
     scanner_textbuf = realloc(scanner_textbuf, sizeof(char) * (scanner_textbuf_idx + 2));
     if (c == EOF) {
       printf(PANIC "Unterminated string (line %d)\n", current_line);
-      panic();
+      exit(1);
     } else if (c == '"') { 
       c = next();
       while (SHOULD_SKIP(c)) {
@@ -145,6 +145,20 @@ static void keyword(struct token* t) {
     case 'n':
       if (strcmp(scanner_idbuf, "none") == 0) {
         t->type = TT_NONE;
+      } else {
+        t->type = TT_ID;
+      }
+      break;
+    case 'r':
+      if (strcmp(scanner_idbuf, "return") == 0) {
+        t->type = TT_RETURN;
+      } else {
+        t->type = TT_ID;
+      }
+      break;
+    case 'u':
+      if (strcmp(scanner_idbuf, "u8") == 0) {
+        t->type = TT_U8;
       } else {
         t->type = TT_ID;
       }
@@ -233,7 +247,7 @@ uint8_t scan(struct token* t) {
       }
 
       printf(PANIC "Invalid character \"%c\" while scanning (line %d)\n", c, line);
-      panic();
+      exit(1);
   }
 
   return 0;

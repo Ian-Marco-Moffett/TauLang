@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <limits.h>
 #include <string.h>
+#include <stdlib.h>
 #include <parser.h>
 #include <lexer.h>
 #include <def.h>
@@ -12,6 +14,7 @@
 
 static struct token last_token;
 static uint8_t is_eof = 0;
+static size_t current_func_id = 0;
 
 #define SCAN is_eof = !scan(&last_token)
 
@@ -21,9 +24,28 @@ static inline void passert(TOKEN_TYPE type, const char* what) {
 #if PARSE_DEBUG
     printf(PANIC "TOKEN=%d\n", last_token.type);
 #endif
-    panic();
+    exit(1);
   }
 }
+
+/*
+ *  Verify that value is in range
+ *  of a type.
+ */
+
+/*
+static inline void assert_type(INTLIT value, SYM_PTYPE ptype) {
+  switch (ptype) {
+    case P_U8:
+      if (value < 0 || value > UCHAR_MAX) {
+        printf(PANIC "Value invalid for type 'u8' (line %d).\n", last_token.line);
+        panic();
+      }
+      break;
+  }
+}
+*/
+
 
 static NODE_TYPE arithop(TOKEN_TYPE tok) {
   switch (tok) {
@@ -38,7 +60,7 @@ static NODE_TYPE arithop(TOKEN_TYPE tok) {
     default:
       printf("%d\n", last_token.type);
       printf(PANIC "__INTERNAL_ERROR__: Unrecognized token found in %s()\n", __func__);
-      panic();
+      exit(1);
       break;
   }
 
@@ -58,7 +80,7 @@ static struct ast_node* primary_factor(void) {
       printf("Token=%d\n", last_token.type);
 #endif
       printf(PANIC "Synatx error (line %d).\n", last_token.line);
-      panic();
+      exit(1);
   }
 
   return NULL;
@@ -69,10 +91,9 @@ static struct ast_node* primary_factor(void) {
  *  Returns an AST tree that has it's root as a binary
  *  operator.
  *
- *  TODO: Remove unused attribute.
  *
  */
-__attribute__((unused)) static struct ast_node* binexpr(void) {
+static struct ast_node* binexpr(void) {
   struct ast_node* n;
 
   /*
@@ -130,6 +151,28 @@ static struct ast_node* inline_assembly(void) {
   return n;
 }
 
+
+/*
+ *  Parse a return statement.
+ *
+ */
+
+static struct ast_node* return_statement(void) {
+  if (g_symtbl[current_func_id].ptype == P_NONE) {
+    printf(PANIC "Cannot use return statement with function that returns none (line %d).\n", last_token.line);
+    exit(1);
+  }
+
+  passert(TT_RETURN, "return");
+  SCAN;
+
+  struct ast_node* expr = binexpr();
+  passert(TT_SEMI, ";");
+  SCAN;
+
+  return mkastunary(A_RETURN, expr, 0);
+}
+
 /*
  *  Parse a compound statement.
  * 
@@ -152,9 +195,12 @@ static struct ast_node* compound_statement(void) {
       case TT_ASM:
         tree = inline_assembly();
         break;
+      case TT_RETURN:
+        tree = return_statement();
+        break;
       default:
         printf(PANIC "Invalid token (line %d)\n", last_token.line);
-        panic();
+        exit(1);
         break;
     } 
 
@@ -189,10 +235,8 @@ static struct ast_node* function(void) {
 
 
   size_t symbol_slot = symtbl_push_glob(scanner_idbuf, S_FUNCTION);
+  current_func_id = symbol_slot;
   g_symtbl[symbol_slot].is_global = is_global;
-
-  // TODO: Add other types.
-  g_symtbl[symbol_slot].ptype = P_NONE;
 
   passert(TT_LPAREN, "(");
   SCAN;
@@ -206,14 +250,27 @@ static struct ast_node* function(void) {
   passert(TT_GT, "->");
   SCAN;
 
-  // NOTE: Other types must be added.
-  passert(TT_NONE, "none");
+  switch (last_token.type) {
+    case TT_NONE:
+      g_symtbl[symbol_slot].ptype = P_NONE;
+      break;
+    case TT_U8:
+      g_symtbl[symbol_slot].ptype = P_U8;
+      break;
+    default:
+      printf(PANIC "Invalid function type (line %d) %d\n", last_token.line, last_token.type);
+      exit(1);
+  }
+
   SCAN;
 
   struct ast_node* block_statement = compound_statement();
   return mkastunary(A_FUNC, block_statement, symbol_slot);
 }
 
+size_t get_cur_function(void) {
+  return current_func_id;
+}
 
 void parse(void) {
   SCAN;

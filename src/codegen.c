@@ -3,6 +3,11 @@
 #include <symbol.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <symbol.h>
+#include <parser.h>
+
+#define DEBUG 0
+
 
 FILE* g_outfile = NULL;
 
@@ -22,6 +27,16 @@ static void insert(const char* _asm) {
   fputs(_asm, g_outfile);
   fputs("\n\t;; User made ASM end\n", g_outfile);
 }
+
+
+static void ret(REG r) {
+  switch (g_symtbl[get_cur_function()].ptype) {
+    case P_U8:
+      fprintf(g_outfile, "\tmovzx rax, %s\n", bregs[r]);
+      break;
+  }
+}
+
 
 void func_prologue(const char* name) {
   fprintf(g_outfile,
@@ -61,7 +76,7 @@ int16_t gen_code(struct ast_node* r) {
       if (r->left)
         gen_code(r->left);
       func_epilouge();
-      break;
+      return -1;
     case A_GLUE:
       gen_code(r->left);
       freeall_regs();
@@ -95,6 +110,9 @@ int16_t gen_code(struct ast_node* r) {
       return reg_div(leftreg, rightreg);
     case A_INTLIT:
       return reg_load(r->val_int);
+    case A_RETURN:
+      ret(leftreg);
+      return -1;
   }
 
   return 0;
@@ -112,6 +130,8 @@ void codegen_end(void) {
   snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld /tmp/tauout.o /lib/taulang/crt0.o -o a.out");
   system(buf);
 
+#if !DEBUG
   remove("/tmp/tauout.asm");
+#endif
   remove("/tmp/tauout.o");
 }

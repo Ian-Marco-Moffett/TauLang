@@ -24,6 +24,8 @@ typedef enum {
   TT_GT,            // Greater than.
   TT_ASM,
   TT_STR_CONSTANT,
+  TT_RETURN,
+  TT_U8,
 } TOKEN_TYPE;
 
 struct token {
