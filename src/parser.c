@@ -182,13 +182,45 @@ static struct ast_node* compound_statement(void) {
   struct ast_node* tree = NULL;
   struct ast_node* left = NULL;
 
+  /*
+   *  got_return is used
+   *  for checking to see
+   *  if the function has
+   *  a return statement.
+   *
+   *  This is to avoid 
+   *  functions that say they
+   *  return a value but lack
+   *  a return statement.
+   *
+   *
+   */
+
+  uint8_t got_return = 0;
+
   passert(TT_LBRACE, "{");
   SCAN;
 
   while (1) {
     if (last_token.type == TT_RBRACE) {
+      /*
+       *  Ensure if the function returns
+       *  a non none type then it must
+       *  have a return statement.
+       *
+       */
+      if (g_symtbl[current_func_id].ptype != P_NONE && !(got_return)) {
+        printf(PANIC "Function \"%s\" lacks return statement and doesn't have type none (line %d).\n", g_symtbl[current_func_id].name, last_token.line);
+        exit(1);
+      }
+
       SCAN;
       return left;
+    }
+
+    if (got_return) {
+      printf(PANIC "Expected '}' after return statement (line %d)\n", last_token.line);
+      exit(1);
     }
 
     switch (last_token.type) {
@@ -197,6 +229,7 @@ static struct ast_node* compound_statement(void) {
         break;
       case TT_RETURN:
         tree = return_statement();
+        got_return = 1;
         break;
       default:
         printf(PANIC "Invalid token (line %d)\n", last_token.line);
