@@ -12,6 +12,8 @@ REG reg_mul(REG r1, REG r2);
 REG reg_sub(REG r1, REG r2);
 REG reg_div(REG r1, REG r2);
 void freeall_regs(void);
+void free_reg(REG r);
+REG alloc_reg(void);
 
 
 extern const char* rregs[4];

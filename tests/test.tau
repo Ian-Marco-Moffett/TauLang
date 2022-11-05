@@ -1,7 +1,11 @@
+bruh() -> u8 {
+  return 68+1;
+}
+
 global main() -> u8 {
   __asm {
     "\tmov rax, 1"
   };
-
-  return 0;
+  
+  return bruh();
 }

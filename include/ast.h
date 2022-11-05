@@ -13,6 +13,7 @@ typedef enum {
   A_INLINE_ASM,
   A_GLUE,
   A_RETURN,
+  A_FUNCCALL,
 } NODE_TYPE;
 
 

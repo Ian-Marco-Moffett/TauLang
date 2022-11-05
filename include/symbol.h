@@ -34,6 +34,14 @@ void init_symtbls(void);
 
 size_t symtbl_push_glob(const char* name, SYM_STYPE stype);
 
+/*
+ *  Returns -1 if not found, otherwise 
+ *  returns slot.
+ *
+ */
+
+int64_t lookup_glob(const char* name);
+
 extern struct symbol* g_symtbl;
 
 #endif

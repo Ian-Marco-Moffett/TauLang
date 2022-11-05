@@ -67,12 +67,64 @@ static NODE_TYPE arithop(TOKEN_TYPE tok) {
   return 0;
 }
 
+
+/*
+ *  Parse a function call.
+ *  
+ *  identifier()
+ *
+ */
+
+static struct ast_node* func_call(size_t slot) {
+  if (g_symtbl[slot].stype != S_FUNCTION) {
+    printf(PANIC "Trying to call \"%s\" which is not a function! (line %d)\n", g_symtbl[slot].name, last_token.line);
+    exit(1);
+  }
+
+  passert(TT_LPAREN, "(");
+  SCAN;
+
+  // TODO: Add arguments.
+  passert(TT_RPAREN, ")");
+  SCAN;
+  
+  passert(TT_SEMI, ";");
+  SCAN;
+
+  return mkastleaf(A_FUNCCALL, slot);
+}
+
+
+static struct ast_node* identifier(void) {
+  size_t slot = lookup_glob(scanner_idbuf);
+
+  if (slot == -1) {
+    printf(PANIC "Symbol \"%s\" not found (line %d)\n", scanner_idbuf, last_token.line);
+    exit(1);
+  }
+
+  SCAN;
+
+  if (last_token.type == TT_LPAREN) {
+    return func_call(slot);
+  }
+
+  printf(PANIC "Syntax error (line %d)\n", last_token.line);
+  exit(1);
+  __builtin_unreachable();
+}
+
+
 static struct ast_node* primary_factor(void) {
   struct ast_node* n;
 
   switch (last_token.type) {
     case TT_INTLIT:
       n = mkastleaf(A_INTLIT, last_token.val_int);
+      SCAN;
+      return n;
+    case TT_ID:
+      n = identifier();
       SCAN;
       return n;
     default:
@@ -167,9 +219,7 @@ static struct ast_node* return_statement(void) {
   SCAN;
 
   struct ast_node* expr = binexpr();
-  passert(TT_SEMI, ";");
   SCAN;
-
   return mkastunary(A_RETURN, expr, 0);
 }
 
@@ -230,6 +280,9 @@ static struct ast_node* compound_statement(void) {
       case TT_RETURN:
         tree = return_statement();
         got_return = 1;
+        break;
+      case TT_ID:
+        tree = identifier();
         break;
       default:
         printf(PANIC "Invalid token (line %d)\n", last_token.line);

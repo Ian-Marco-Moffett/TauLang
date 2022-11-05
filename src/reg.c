@@ -8,7 +8,7 @@ const char* bregs[4] = {"r8b", "r9b", "r10b", "r11b"};
 static uint8_t regbmp = 0xFF;
 
 
-static REG alloc_reg(void) {
+REG alloc_reg(void) {
   for (int i = 0; i < sizeof(regbmp)*8; ++i) {
     if (regbmp & (1 << i)) {
       regbmp &= ~(1 << i);
@@ -20,7 +20,7 @@ static REG alloc_reg(void) {
 }
 
 
-static void free_reg(REG r) {
+void free_reg(REG r) {
   if (r > (sizeof(regbmp)*8) - 1 || r < 0) {
     return;
   }

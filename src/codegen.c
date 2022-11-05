@@ -28,6 +28,18 @@ static void insert(const char* _asm) {
   fputs("\n\t;; User made ASM end\n", g_outfile);
 }
 
+/*
+ *  Calls a function and returns the
+ *  register with the result of the call.
+ */
+
+static size_t call(size_t slot) {
+  REG r = alloc_reg();
+  fprintf(g_outfile, "\tcall f__%s\n", g_symtbl[slot].name);
+  fprintf(g_outfile, "\tmov %s, rax\n", rregs[r]);
+  return r;
+}
+
 
 static void ret(REG r) {
   switch (g_symtbl[get_cur_function()].ptype) {
@@ -60,7 +72,7 @@ void global(const char* name, SYM_STYPE stype) {
 
 
 void func_epilouge(void) {
-  fputs("\tleave\n\tretq\n", g_outfile);
+  fputs("\tleave\n\tretq\n\n", g_outfile);
 }
 
 
@@ -89,7 +101,7 @@ int16_t gen_code(struct ast_node* r) {
         free((char*)r->text);
         r->text = NULL;
       }
-      return -1;
+      return -1; 
   }
 
   if (r->left)
@@ -110,6 +122,8 @@ int16_t gen_code(struct ast_node* r) {
       return reg_div(leftreg, rightreg);
     case A_INTLIT:
       return reg_load(r->val_int);
+    case A_FUNCCALL:
+      return call(r->id);
     case A_RETURN:
       ret(leftreg);
       return -1;
