@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-uint16_t gen_code(struct ast_node* r);
+int16_t gen_code(struct ast_node* r);
+void codegen_insert(const char* _asm);
 void codegen_init(void);
 
 extern FILE* g_outfile;

@@ -9,10 +9,16 @@ typedef enum {
   S_FUNCTION
 } SYM_STYPE;
 
+// Primitive types.
+typedef enum {
+  P_NONE,
+} SYM_PTYPE;
+
 
 struct symbol {
   const char* name;
   SYM_STYPE stype;
+  SYM_PTYPE ptype;
   uint8_t is_global : 1;
 };
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <parser.h>
 #include <lexer.h>
 #include <def.h>
@@ -68,8 +69,10 @@ static struct ast_node* primary_factor(void) {
  *  Returns an AST tree that has it's root as a binary
  *  operator.
  *
+ *  TODO: Remove unused attribute.
+ *
  */
-struct ast_node* binexpr(void) {
+__attribute__((unused)) static struct ast_node* binexpr(void) {
   struct ast_node* n;
 
   /*
@@ -91,7 +94,39 @@ struct ast_node* binexpr(void) {
    *  Get the right-hand tree.
    */
   struct ast_node* right = binexpr();
-  n = mkastnode(node_type, left, right, 0);
+  n = mkastnode(node_type, left, NULL, right, 0);
+  return n;
+}
+
+
+/*
+ *  Parse inline assembly.
+ *
+ *  __asm {
+ *    "stuff"
+ *  };
+ *
+ */
+
+static struct ast_node* inline_assembly(void) {
+  passert(TT_ASM, "__asm");
+  SCAN;
+
+  passert(TT_LBRACE, "{");
+  SCAN;
+
+  passert(TT_STR_CONSTANT, "string constant");
+  
+  struct ast_node* n = mkastleaf(A_INLINE_ASM, 0);
+  n->text = strdup(scanner_textbuf);
+  scanner_reset_textbuf();
+  SCAN;
+
+  passert(TT_RBRACE, "}");
+  SCAN;
+
+  passert(TT_SEMI, ";");
+  SCAN;
   return n;
 }
 
@@ -102,22 +137,42 @@ struct ast_node* binexpr(void) {
 
 static struct ast_node* compound_statement(void) {
   struct ast_node* tree = NULL;
+  struct ast_node* left = NULL;
 
-  /*
-   *  There are no other statements
-   *  for now, TODO: Add more statements.
-   *
-   */
   passert(TT_LBRACE, "{");
   SCAN;
-  passert(TT_RBRACE, "}");
-  SCAN;
 
-  return tree;
+  while (1) {
+    if (last_token.type == TT_RBRACE) {
+      SCAN;
+      return left;
+    }
+
+    switch (last_token.type) {
+      case TT_ASM:
+        tree = inline_assembly();
+        break;
+      default:
+        printf(PANIC "Invalid token (line %d)\n", last_token.line);
+        panic();
+        break;
+    } 
+
+    if (tree) {
+      if (left == NULL)
+        left = tree;
+      else
+        left = mkastnode(A_GLUE, left, NULL, tree, 0);
+    }
+  }
+  
+  __builtin_unreachable();
 }
 
 /*
  *  Parse functions.
+ *
+ *  symbol() -> type
  *  
  */
 
@@ -136,10 +191,23 @@ static struct ast_node* function(void) {
   size_t symbol_slot = symtbl_push_glob(scanner_idbuf, S_FUNCTION);
   g_symtbl[symbol_slot].is_global = is_global;
 
+  // TODO: Add other types.
+  g_symtbl[symbol_slot].ptype = P_NONE;
+
   passert(TT_LPAREN, "(");
   SCAN;
 
   passert(TT_RPAREN, ")");
+  SCAN;
+
+  passert(TT_MINUS, "->");
+  SCAN;
+
+  passert(TT_GT, "->");
+  SCAN;
+
+  // NOTE: Other types must be added.
+  passert(TT_NONE, "none");
   SCAN;
 
   struct ast_node* block_statement = compound_statement();

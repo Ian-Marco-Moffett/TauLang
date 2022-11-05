@@ -28,6 +28,11 @@ static void free_reg(REG r) {
 }
 
 
+void freeall_regs(void) {
+  regbmp = 0xFF;
+}
+
+
 REG reg_load(INTLIT value) {
   REG r = alloc_reg();
   fprintf(g_outfile, "\tmov %s, %d\n", rregs[r], value);

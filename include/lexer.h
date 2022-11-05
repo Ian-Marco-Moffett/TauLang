@@ -20,6 +20,10 @@ typedef enum {
   TT_SEMI,
   TT_LBRACE,
   TT_RBRACE,
+  TT_NONE,
+  TT_GT,            // Greater than.
+  TT_ASM,
+  TT_STR_CONSTANT,
 } TOKEN_TYPE;
 
 struct token {
@@ -29,7 +33,9 @@ struct token {
 };
 
 uint8_t scan(struct token* t);
+void scanner_reset_textbuf(void);
 
 extern char scanner_idbuf[MAX_ID_LENGTH];
+extern char* scanner_textbuf;
 
 #endif

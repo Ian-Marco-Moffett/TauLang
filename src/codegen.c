@@ -1,6 +1,7 @@
 #include <codegen.h>
 #include <reg.h>
 #include <symbol.h>
+#include <stdlib.h>
 
 FILE* g_outfile = NULL;
 
@@ -40,7 +41,14 @@ void func_epilouge(void) {
 }
 
 
-uint16_t gen_code(struct ast_node* r) {
+static void insert(const char* _asm) {
+  fputs("\t;; User made ASM begin\n", g_outfile);
+  fputs(_asm, g_outfile);
+  fputs("\n\t;; User made ASM end\n", g_outfile);
+}
+
+
+int16_t gen_code(struct ast_node* r) {
   REG leftreg, rightreg;
 
   switch (r->op) {
@@ -49,8 +57,22 @@ uint16_t gen_code(struct ast_node* r) {
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
+      gen_code(r->left);
       func_epilouge();
       break;
+    case A_GLUE:
+      gen_code(r->left);
+      freeall_regs();
+      gen_code(r->right);
+      freeall_regs();
+      return -1;
+    case A_INLINE_ASM:
+      if (r->text) {
+        insert(r->text);
+        free((char*)r->text);
+        r->text = NULL;
+      }
+      return -1;
   }
 
   if (r->left)

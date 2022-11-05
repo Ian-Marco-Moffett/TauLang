@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <symbol.h>
+#include <lexer.h>
 
 extern struct symbol* g_symtbl;
 extern size_t g_symtbl_size;
@@ -11,6 +12,9 @@ void panic(void) {
     if (g_symtbl != NULL)
       free((char*)g_symtbl[i].name);
   }
+
+  if (scanner_textbuf != NULL)
+    free(scanner_textbuf);
 
   if (g_symtbl != NULL) {
     free(g_symtbl);

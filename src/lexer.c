@@ -13,6 +13,8 @@ extern FILE* g_fp;
 static size_t line = 1;
 static char spared = '\0';
 char scanner_idbuf[MAX_ID_LENGTH];
+char* scanner_textbuf = NULL;
+static size_t scanner_textbuf_idx = 0;
 
 static inline void spare(char c) {
   spared = c;
@@ -23,6 +25,8 @@ static char next(void) {
 
   if (c == '\0') {
     return EOF;
+  } else if (c == '\n') {
+    ++line;
   }
 
   return c;
@@ -75,20 +79,81 @@ static void scan_id(char c, char* buf) {
 }
 
 
+static void scan_str(void) {
+  if (scanner_textbuf == NULL) {
+    scanner_textbuf = calloc(2, sizeof(char));
+  }
+  
+  size_t current_line = line;
+  char c = next();
+  while (1) {
+    scanner_textbuf = realloc(scanner_textbuf, sizeof(char) * (scanner_textbuf_idx + 2));
+    if (c == EOF) {
+      printf(PANIC "Unterminated string (line %d)\n", current_line);
+      panic();
+    } else if (c == '"') {
+      // End of string.
+      scanner_textbuf[scanner_textbuf_idx] = '\0';
+      next();
+      break;
+    } else if (c == '\\') {
+      /*
+       *  Check possible escape code.
+       *
+       */
+      c = next();
+      switch (c) {
+        case 'n':
+          c = '\n';
+          break;
+        case 't':
+          c = '\t';
+          break;
+        default:
+          continue;
+      } 
+    }
+
+    scanner_textbuf[scanner_textbuf_idx++] = c;
+    c = next();
+  }
+}
+
+
 static void keyword(struct token* t) {
   switch (scanner_idbuf[0]) {
     case 'g':
       if (strcmp(scanner_idbuf, "global") == 0) { 
         t->type = TT_GLOBAL;
-        return;
+      } else {
+        t->type = TT_ID;
       }
       
-      t->type = TT_ID;
+      break;
+    case 'n':
+      if (strcmp(scanner_idbuf, "none") == 0) {
+        t->type = TT_NONE;
+      } else {
+        t->type = TT_ID;
+      }
+      break;
+    case '_':
+      if (strcmp(scanner_idbuf, "__asm") == 0) {
+        t->type = TT_ASM;
+      } else {
+        t->type = TT_ID;
+      }
       break;
     default:
       t->type = TT_ID;
       break;
   }
+}
+
+
+void scanner_reset_textbuf(void) {
+  scanner_textbuf_idx = 0;
+  scanner_textbuf = realloc(scanner_textbuf, sizeof(char)*2);
 }
 
 
@@ -137,12 +202,19 @@ uint8_t scan(struct token* t) {
     case '}':
       t->type = TT_RBRACE;
       return 1;
+    case '>':
+      t->type = TT_GT;
+      return 1;
+    case '"':
+      scan_str();
+      t->type = TT_STR_CONSTANT;
+      return 1;
     default:
       if (ISDIGIT(c)) {
         t->val_int = scanint(c);
         t->type = TT_INTLIT;
         return 1;
-      } else if (ISALPHA(c)) {
+      } else if (ISALPHA(c) || c == '_') {
         scan_id(c, scanner_idbuf);
         keyword(t);
         return 1;

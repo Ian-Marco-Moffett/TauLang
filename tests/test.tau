@@ -1,2 +1,5 @@
-global function() {
+global function() -> none {
+  __asm {
+    "\tmov rax, 1"
+  };
 }

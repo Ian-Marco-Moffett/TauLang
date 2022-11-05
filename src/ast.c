@@ -23,7 +23,7 @@ void ast_destroy(void) {
   nodes = NULL;
 }
 
-struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node* right, INTLIT val_int) {
+struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node* mid, struct ast_node* right, INTLIT val_int) {
   if (nodes == NULL) {
     nodes = malloc(sizeof(struct ast_node*));
     if (nodes == NULL) {
@@ -41,6 +41,7 @@ struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node*
 
   n->op = op;
   n->left = left;
+  n->mid = mid;
   n->right = right;
   n->val_int = val_int;
   push(n);
@@ -48,9 +49,9 @@ struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node*
 }
 
 struct ast_node* mkastleaf(NODE_TYPE op, INTLIT val_int) {
-  return mkastnode(op, NULL, NULL, val_int);
+  return mkastnode(op, NULL, NULL, NULL, val_int);
 }
 
 struct ast_node* mkastunary(NODE_TYPE op, struct ast_node* left, INTLIT val_int) {
-  return mkastnode(op, left, NULL, val_int);
+  return mkastnode(op, left, NULL, NULL, val_int);
 }

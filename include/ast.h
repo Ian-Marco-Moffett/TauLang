@@ -10,13 +10,17 @@ typedef enum {
   A_DIV,
   A_INTLIT,
   A_FUNC,
+  A_INLINE_ASM,
+  A_GLUE,
 } NODE_TYPE;
 
 
 struct ast_node {
   NODE_TYPE op;
   struct ast_node* left;
+  struct ast_node* mid;
   struct ast_node* right;
+  const char* text;
 
   union {
     INTLIT val_int; 
@@ -25,7 +29,7 @@ struct ast_node {
 };
 
 void ast_destroy(void);
-struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node* right, INTLIT val_int);
+struct ast_node* mkastnode(NODE_TYPE op, struct ast_node* left, struct ast_node* mid, struct ast_node* right, INTLIT val_int);
 struct ast_node* mkastleaf(NODE_TYPE op, INTLIT val_int);
 struct ast_node* mkastunary(NODE_TYPE op, struct ast_node* left, INTLIT val_int);
 
