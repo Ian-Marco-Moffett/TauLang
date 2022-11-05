@@ -158,7 +158,7 @@ static struct ast_node* compound_statement(void) {
         break;
     } 
 
-    if (tree) {
+    if (tree != NULL) {
       if (left == NULL)
         left = tree;
       else
@@ -227,4 +227,6 @@ void parse(void) {
     else
       break;
   }
+
+  codegen_end();
 }

@@ -2,6 +2,7 @@
 #include <reg.h>
 #include <symbol.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 FILE* g_outfile = NULL;
 
@@ -15,17 +16,24 @@ static void prologue(void) {
   g_outfile);
 }
 
+
+static void insert(const char* _asm) {
+  fputs("\t;; User made ASM begin\n", g_outfile);
+  fputs(_asm, g_outfile);
+  fputs("\n\t;; User made ASM end\n", g_outfile);
+}
+
 void func_prologue(const char* name) {
   fprintf(g_outfile,
     "f__%s:\n"
     "\tpush rbp\n"
-    "\tmov rsp, rbp\n", name);
+    "\tmov rbp, rsp\n", name);
 }
 
 
-void global(const char* name, SYM_STYPE stype) {
+void global(const char* name, SYM_STYPE stype) { 
   const char* stype_prefix = "u__";
-  
+
   switch (stype) {
     case S_FUNCTION:
       stype_prefix = "f__";
@@ -41,13 +49,6 @@ void func_epilouge(void) {
 }
 
 
-static void insert(const char* _asm) {
-  fputs("\t;; User made ASM begin\n", g_outfile);
-  fputs(_asm, g_outfile);
-  fputs("\n\t;; User made ASM end\n", g_outfile);
-}
-
-
 int16_t gen_code(struct ast_node* r) {
   REG leftreg, rightreg;
 
@@ -57,7 +58,8 @@ int16_t gen_code(struct ast_node* r) {
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
-      gen_code(r->left);
+      if (r->left)
+        gen_code(r->left);
       func_epilouge();
       break;
     case A_GLUE:
@@ -101,4 +103,15 @@ int16_t gen_code(struct ast_node* r) {
 void codegen_init(void) {
   g_outfile = fopen("/tmp/tauout.asm", "w");
   prologue();
+}
+
+
+void codegen_end(void) {
+  fclose(g_outfile);
+  char buf[450];
+  snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld /tmp/tauout.o /lib/taulang/crt0.o -o a.out");
+  system(buf);
+
+  remove("/tmp/tauout.asm");
+  remove("/tmp/tauout.o");
 }

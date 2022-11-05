@@ -13,11 +13,7 @@ static void compile(void) {
 
 
 static void _on_exit(void) {
-  extern FILE* g_outfile;
   fclose(g_fp);
-
-  if (g_outfile != NULL)
-    fclose(g_outfile);
 
   // Just to cleanup.
   panic();

@@ -1,6 +1,5 @@
-global function() -> none {
+global main() -> none {
   __asm {
-    "\tmov rax, 1\n"
-    "\tmov rdx, 0xDEADBEEF"
+    "\tmov rax, 1"
   };
 }
