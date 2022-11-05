@@ -7,6 +7,7 @@
 #define ISDIGIT(n) (n >= '0' && n <= '9')
 #define TOLOWER(x) (x | (1 << 5))
 #define ISALPHA(x) (TOLOWER(x) >= 'a' && TOLOWER(x) <= 'z')
+#define SHOULD_SKIP(c) (c == '\t' || c == '\r' || c == '\n' || c == ' ')
 
 
 extern FILE* g_fp;
@@ -91,10 +92,21 @@ static void scan_str(void) {
     if (c == EOF) {
       printf(PANIC "Unterminated string (line %d)\n", current_line);
       panic();
-    } else if (c == '"') {
+    } else if (c == '"') { 
+      c = next();
+      while (SHOULD_SKIP(c)) {
+        c = next();
+      }
+
+      if (c != '"') {
+        spare(c);
+      } else {
+        c = next();
+        continue;
+      }
+
       // End of string.
       scanner_textbuf[scanner_textbuf_idx] = '\0';
-      next();
       break;
     } else if (c == '\\') {
       /*
@@ -166,7 +178,7 @@ uint8_t scan(struct token* t) {
     spared = '\0';
   }
 
-  while (c == '\t' || c == '\r' || c == '\n' || c == ' ') {
+  while (SHOULD_SKIP(c)) {
     c = next();
   }
 
