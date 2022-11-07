@@ -54,17 +54,17 @@ static void arg(struct symbol* arg, size_t arg_number) {
   switch (arg->ptype) {
     case P_U8:
       if (arg_number == 0) {
-        fprintf(g_outfile, "\tmov [rbp+16], dil\n");
+        fprintf(g_outfile, "\tmov [rbp-16], dil\n");
       } else if (arg_number == 1) {
-        fprintf(g_outfile, "\tmov [rbp+24], sil\n");
+        fprintf(g_outfile, "\tmov [rbp-24], sil\n");
       } else if (arg_number == 2) {
-        fprintf(g_outfile, "\tmov [rbp+32], dl\n");
+        fprintf(g_outfile, "\tmov [rbp-32], dl\n");
       } else if (arg_number == 3) {
-        fprintf(g_outfile, "\tmov [rbp+40], cl\n");
+        fprintf(g_outfile, "\tmov [rbp-40], cl\n");
       } else if (arg_number == 4) {
-        fprintf(g_outfile, "\tmov [rbp+48], r8b\n");
+        fprintf(g_outfile, "\tmov [rbp-48], r8b\n");
       } else if (arg_number == 5) {
-        fprintf(g_outfile, "\tmov [rbp+56], r9b\n");
+        fprintf(g_outfile, "\tmov [rbp-56], r9b\n");
       } 
       break;
   }
@@ -83,6 +83,8 @@ static void arg_pass(REG r, size_t arg_number) {
     fprintf(g_outfile, "\tmov r8, %s\n", rregs[r]);
   } else if (arg_number == 5) {
     fprintf(g_outfile, "\tmov r9, %s\n", rregs[r]);
+  } else {
+    fprintf(g_outfile, "\tpush %s\n", rregs[r]);
   }
   
   freeall_regs();

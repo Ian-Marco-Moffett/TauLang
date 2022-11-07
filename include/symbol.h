@@ -24,9 +24,10 @@ struct symbol {
   struct symbol* local_symtbl;
   struct symbol* parent;            // For local symbol.
   size_t local_symtbl_size;
-
+  
   // For functions.
   size_t rbp_offset;
+  size_t arg_count;
 };
 
 

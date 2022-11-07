@@ -93,6 +93,11 @@ static struct ast_node* func_call(size_t slot) {
     if (last_token.type == TT_RPAREN)
       break;
 
+    if (arg_n+1 > g_symtbl[slot].arg_count) {
+      printf(PANIC "Too many arguments supplied for function \"%s\" (line %d)\n", g_symtbl[slot].name, last_token.line);
+      exit(1);
+    } 
+
     if (left == NULL) {
       left = mkastnode(A_ARG_PASS, NULL, binexpr(), NULL, arg_n);
       arg_tree = left;
@@ -112,6 +117,11 @@ static struct ast_node* func_call(size_t slot) {
     SCAN;
     ++arg_n;
   } 
+
+  if (arg_n+1 < g_symtbl[slot].arg_count) {
+      printf(PANIC "Too few arguments supplied for function \"%s\" (line %d)\n", g_symtbl[slot].name, last_token.line);
+      exit(1);
+  }
   
   passert(TT_SEMI, ";");
   SCAN;
@@ -383,6 +393,8 @@ static struct ast_node* function(void) {
   while (1) {
     if (last_token.type == TT_RPAREN)
       break;
+
+    g_symtbl[symbol_slot].arg_count++;
 
     switch (last_token.type) {
       case TT_U8:
