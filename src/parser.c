@@ -18,6 +18,7 @@ static size_t current_func_id = 0;
 
 #define SCAN is_eof = !scan(&last_token)
 
+static struct ast_node* binexpr(void);
 static inline void passert(TOKEN_TYPE type, const char* what) {
   if (last_token.type != type) {
     printf(PANIC "Expected \"%s\" (line %d).\n", what, last_token.line);
@@ -84,14 +85,38 @@ static struct ast_node* func_call(size_t slot) {
   passert(TT_LPAREN, "(");
   SCAN;
 
-  // TODO: Add arguments.
-  passert(TT_RPAREN, ")");
-  SCAN;
+  struct ast_node* arg_tree = NULL;
+  struct ast_node* left = NULL;
+  size_t arg_n = 0;
+  
+  while (1) {
+    if (last_token.type == TT_RPAREN)
+      break;
+
+    if (left == NULL) {
+      left = mkastnode(A_ARG_PASS, NULL, binexpr(), NULL, arg_n);
+      arg_tree = left;
+    } else {
+      left->left = mkastnode(A_ARG_PASS, NULL, binexpr(), NULL, arg_n);
+      left = left->left;
+    }
+
+    if (last_token.type == TT_RPAREN) {
+      SCAN;
+      break;
+    } else if (last_token.type != TT_COMMA) {
+      printf(PANIC "Expected ',' or ')' (line %d)\n", last_token.line);
+      exit(1);
+    }
+
+    SCAN;
+    ++arg_n;
+  } 
   
   passert(TT_SEMI, ";");
   SCAN;
 
-  return mkastleaf(A_FUNCCALL, slot);
+  return mkastunary(A_FUNCCALL, arg_tree, slot);
 }
 
 
@@ -157,7 +182,7 @@ static struct ast_node* binexpr(void) {
 
   struct ast_node* left = primary_factor();
 
-  if (is_eof || last_token.type == TT_RPAREN || last_token.type == TT_SEMI)
+  if (is_eof || last_token.type == TT_RPAREN || last_token.type == TT_SEMI || last_token.type == TT_COMMA)
     return left;
 
   NODE_TYPE node_type = arithop(last_token.type);

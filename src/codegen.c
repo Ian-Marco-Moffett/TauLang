@@ -70,6 +70,24 @@ static void arg(struct symbol* arg, size_t arg_number) {
   }
 }
 
+static void arg_pass(REG r, size_t arg_number) {
+  if (arg_number == 0) {
+    fprintf(g_outfile, "\tmov rdi, %s\n", rregs[r]);
+  } else if (arg_number == 1) {
+    fprintf(g_outfile, "\tmov rsi, %s\n", rregs[r]);
+  } else if (arg_number == 2) {
+    fprintf(g_outfile, "\tmov rdx, %s\n", rregs[r]);
+  } else if (arg_number == 3) {
+    fprintf(g_outfile, "\tmov rcx, %s\n", rregs[r]);
+  } else if (arg_number == 4) {
+    fprintf(g_outfile, "\tmov r8, %s\n", rregs[r]);
+  } else if (arg_number == 5) {
+    fprintf(g_outfile, "\tmov r9, %s\n", rregs[r]);
+  }
+  
+  freeall_regs();
+}
+
 
 /*
  *  Allocates space on the stack
@@ -78,7 +96,8 @@ static void arg(struct symbol* arg, size_t arg_number) {
  */
 
 static inline void stack_alloc(struct symbol func) {
-  fprintf(g_outfile, "\tsub rsp, %d\n", func.rbp_offset);
+  if (func.rbp_offset != 0)
+    fprintf(g_outfile, "\tsub rsp, %d\n", func.rbp_offset);
 }
 
 
@@ -122,6 +141,7 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
+
       stack_alloc(g_symtbl[r->id]);
 
       // Actual code within the function.
@@ -159,6 +179,16 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
       if (r->left)
         gen_code(r->left, r1);
         
+      return -1; 
+    case A_ARG_PASS:
+      if (r->left) {
+        gen_code(r->left, NULL);
+      }
+      
+      if (r->mid) {
+        leftreg = gen_code(r->mid, NULL);
+        arg_pass(leftreg, r->val_int);
+      }
       return -1;
   }
 
@@ -179,7 +209,7 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
     case A_DIV:
       return reg_div(leftreg, rightreg);
     case A_INTLIT:
-      return reg_load(r->val_int);
+      return reg_load(r->val_int); 
     case A_FUNCCALL:
       return call(r->id);
     case A_RETURN:

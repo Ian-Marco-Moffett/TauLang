@@ -1,5 +1,6 @@
-bruh(u8 arg0, u8 arg1, u8 arg2) -> none {}
+bruh(u8 arg0, u8 arg1) -> none {}
 
 global main() -> u8 {
+  bruh(1, 2);
   return 0;
 }
