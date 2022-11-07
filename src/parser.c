@@ -305,6 +305,14 @@ static struct ast_node* compound_statement(void) {
  *  Parse functions.
  *
  *  symbol() -> type
+ *
+ *  or
+ *
+ *  symbol(u8 arg0, u8 arg1) -> type
+ *
+ *  or
+ *
+ *  symbol(u8 arg0) -> type
  *  
  */
 
@@ -324,8 +332,87 @@ static struct ast_node* function(void) {
   current_func_id = symbol_slot;
   g_symtbl[symbol_slot].is_global = is_global;
 
+  /*
+   *  Setup the local symbol table 
+   *  for this function.
+   *
+   */
+
+  g_symtbl[symbol_slot].local_symtbl = malloc(sizeof(struct symbol));
+
+  /*
+   *  Now what we will do
+   *  is begin the parsing
+   *  of the function
+   *  arguments.
+   *
+   */
   passert(TT_LPAREN, "(");
-  SCAN;
+  SCAN; 
+
+  struct ast_node* arg_tree = NULL;
+  struct ast_node* left = NULL;
+  SYM_PTYPE current_ptype;
+
+  size_t arg_n = 0;
+  while (1) {
+    if (last_token.type == TT_RPAREN)
+      break;
+
+    switch (last_token.type) {
+      case TT_U8:
+        current_ptype = P_U8;
+        break;
+      case TT_NONE:
+        printf(PANIC "Argument %d cannot be of type none (line %d).\n", arg_n, last_token.line);
+        exit(1);
+        break;
+      default:
+        printf(PANIC "Expected type for argument %d (line %d).\n", arg_n, last_token.line);
+        exit(1);
+    }
+
+    SCAN;
+
+    if (last_token.type != TT_ID) {
+      printf(PANIC "Expected identifier for argument %d (line %d).\n", arg_n, last_token.line);
+      exit(1);
+    }
+  
+    /*
+     *  Push this argument
+     *  to the function's
+     *  local symbol table
+     *  and create an 
+     *  AST node for this
+     *  argument.
+     *
+     */
+    size_t local_sym_id = local_symtbl_push(&g_symtbl[symbol_slot], scanner_idbuf, S_ARGUMENT, current_ptype);
+   
+    if (left == NULL) {
+      left = mkastleaf(A_ARG, local_sym_id);
+      left->extra_argument = arg_n;
+      arg_tree = left;
+    } else {
+      left->left = mkastleaf(A_ARG, local_sym_id);
+      left = left->left;
+      left->extra_argument = arg_n;
+    }
+
+    SCAN;
+
+    if (last_token.type == TT_COMMA) {
+      ++arg_n;
+      SCAN;
+      continue;
+    } else if (last_token.type == TT_RPAREN) {
+      break;
+    } else {
+      printf(PANIC "Syntax error (line %d).\n", last_token.line);
+      exit(1);
+    }
+  }
 
   passert(TT_RPAREN, ")");
   SCAN;
@@ -344,14 +431,14 @@ static struct ast_node* function(void) {
       g_symtbl[symbol_slot].ptype = P_U8;
       break;
     default:
-      printf(PANIC "Invalid function type (line %d) %d\n", last_token.line, last_token.type);
+      printf(PANIC "Invalid function type (line %d).\n", last_token.line);
       exit(1);
   }
 
   SCAN;
 
   struct ast_node* block_statement = compound_statement();
-  return mkastunary(A_FUNC, block_statement, symbol_slot);
+  return mkastnode(A_FUNC, block_statement, NULL, arg_tree, symbol_slot);
 }
 
 size_t get_cur_function(void) {
@@ -366,7 +453,7 @@ void parse(void) {
     struct ast_node* tree = function();
 
     if (tree != NULL)
-      gen_code(tree);
+      gen_code(tree, NULL);
     else
       break;
   }

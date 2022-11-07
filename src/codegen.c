@@ -6,7 +6,7 @@
 #include <symbol.h>
 #include <parser.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 
 FILE* g_outfile = NULL;
@@ -50,6 +50,38 @@ static void ret(REG r) {
 }
 
 
+static void arg(struct symbol* arg, size_t arg_number) {
+  switch (arg->ptype) {
+    case P_U8:
+      if (arg_number == 0) {
+        fprintf(g_outfile, "\tmov [rbp+16], dil\n");
+      } else if (arg_number == 1) {
+        fprintf(g_outfile, "\tmov [rbp+24], sil\n");
+      } else if (arg_number == 2) {
+        fprintf(g_outfile, "\tmov [rbp+32], dl\n");
+      } else if (arg_number == 3) {
+        fprintf(g_outfile, "\tmov [rbp+40], cl\n");
+      } else if (arg_number == 4) {
+        fprintf(g_outfile, "\tmov [rbp+48], r8b\n");
+      } else if (arg_number == 5) {
+        fprintf(g_outfile, "\tmov [rbp+56], r9b\n");
+      } 
+      break;
+  }
+}
+
+
+/*
+ *  Allocates space on the stack
+ *  for local variables and arguments.
+ *
+ */
+
+static inline void stack_alloc(struct symbol func) {
+  fprintf(g_outfile, "\tsub rsp, %d\n", func.rbp_offset);
+}
+
+
 void func_prologue(const char* name) {
   fprintf(g_outfile,
     "f__%s:\n"
@@ -76,23 +108,36 @@ void func_epilouge(void) {
 }
 
 
-int16_t gen_code(struct ast_node* r) {
+int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
   REG leftreg, rightreg;
 
   switch (r->op) {
     case A_FUNC:
+      /*
+       *  Make this symbol global
+       *  if it is marked as global.
+       * 
+       */
       if (g_symtbl[r->id].is_global)
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
+      stack_alloc(g_symtbl[r->id]);
+
+      // Actual code within the function.
       if (r->left)
-        gen_code(r->left);
+        gen_code(r->left, NULL);
+  
+      // Arguments.
+      if (r->right)
+        gen_code(r->right, r);
+
       func_epilouge();
       return -1;
     case A_GLUE:
-      gen_code(r->left);
+      gen_code(r->left, NULL);
       freeall_regs();
-      gen_code(r->right);
+      gen_code(r->right, NULL);
       freeall_regs();
       return -1;
     case A_INLINE_ASM:
@@ -102,13 +147,26 @@ int16_t gen_code(struct ast_node* r) {
         r->text = NULL;
       }
       return -1; 
+    case A_ARG:
+      /*
+       *  NOTE: The extra argument field in the AST
+       *        is used for the arg count when parsing
+       *        function arguments.
+       *
+       */
+      arg(&g_symtbl[r1->id].local_symtbl[r->id], r->extra_argument);
+
+      if (r->left)
+        gen_code(r->left, r1);
+        
+      return -1;
   }
 
   if (r->left)
-    leftreg = gen_code(r->left);
+    leftreg = gen_code(r->left, NULL);
 
   if (r->right)
-    rightreg = gen_code(r->right);
+    rightreg = gen_code(r->right, NULL);
 
   switch (r->op) {
     case A_ADD:

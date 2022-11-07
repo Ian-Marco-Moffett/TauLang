@@ -7,5 +7,5 @@ global main() -> u8 {
     "\tmov rax, 1"
   };
   
-  return bruh();
+  return 0;
 }

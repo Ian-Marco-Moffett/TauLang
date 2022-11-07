@@ -14,8 +14,18 @@ extern size_t g_symtbl_size;
 
 static void cleanup(void) {
   for (size_t i = 0; i < g_symtbl_size; ++i) {
-    if (g_symtbl != NULL)
+    if (g_symtbl != NULL) {
       free((char*)g_symtbl[i].name);
+    }
+
+    for (size_t j = 0; j < g_symtbl[i].local_symtbl_size; ++j) {
+      if (g_symtbl[i].local_symtbl[j].name != NULL)
+        free((char*)g_symtbl[i].local_symtbl[j].name);
+    }
+
+    if (g_symtbl[i].local_symtbl != NULL) {
+      free(g_symtbl[i].local_symtbl);
+    }
   }
 
   if (scanner_textbuf != NULL)

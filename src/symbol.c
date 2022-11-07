@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ALIGN_UP(value, align)    (((value) + (align)-1) & ~((align)-1))
+
+
 struct symbol* g_symtbl = NULL;
 size_t g_symtbl_size = 0;
 
@@ -13,9 +16,33 @@ void init_symtbls(void) {
 
 size_t symtbl_push_glob(const char* name, SYM_STYPE stype) {
   g_symtbl[g_symtbl_size].name = strdup(name);
+  g_symtbl[g_symtbl_size].local_symtbl = NULL;
+  g_symtbl[g_symtbl_size].local_symtbl_size = 0;
+  g_symtbl[g_symtbl_size].rbp_offset = 0;
   g_symtbl[g_symtbl_size++].stype = stype;
   g_symtbl = realloc(g_symtbl, sizeof(struct symbol) * (g_symtbl_size + 2));
   return g_symtbl_size - 1;
+}
+
+
+size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype, SYM_PTYPE ptype) {
+  glob->local_symtbl[glob->local_symtbl_size].name = strdup(name);
+  glob->local_symtbl[glob->local_symtbl_size].stype = stype;
+  glob->local_symtbl[glob->local_symtbl_size].ptype = ptype;
+  glob->local_symtbl[glob->local_symtbl_size].parent = glob;
+  glob->local_symtbl[glob->local_symtbl_size++].local_symtbl = NULL;
+  glob->local_symtbl = realloc(glob->local_symtbl, sizeof(struct symbol) * (glob->local_symtbl_size + 2));
+  
+  switch (ptype) {
+    case P_U8:
+      glob->rbp_offset += 1;      
+  }
+
+  // Stack must be 8 byte aligned or else
+  // you get a segfault on Linux.
+  glob->rbp_offset = ALIGN_UP(glob->rbp_offset, 8);
+
+  return glob->local_symtbl_size - 1;
 }
 
 

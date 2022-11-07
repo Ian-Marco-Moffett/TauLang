@@ -6,7 +6,8 @@
 
 // Structural types.
 typedef enum {
-  S_FUNCTION
+  S_FUNCTION,
+  S_ARGUMENT
 } SYM_STYPE;
 
 // Primitive types.
@@ -15,12 +16,17 @@ typedef enum {
   P_U8
 } SYM_PTYPE;
 
-
 struct symbol {
   const char* name;
   SYM_STYPE stype;
   SYM_PTYPE ptype;
   uint8_t is_global : 1;
+  struct symbol* local_symtbl;
+  struct symbol* parent;            // For local symbol.
+  size_t local_symtbl_size;
+
+  // For functions.
+  size_t rbp_offset;
 };
 
 
@@ -33,6 +39,14 @@ void init_symtbls(void);
  */
 
 size_t symtbl_push_glob(const char* name, SYM_STYPE stype);
+
+/*
+ *  Pushes a local symbol to a global symbol's
+ *  local symbol table.
+ *
+ */
+
+size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype, SYM_PTYPE ptype);
 
 /*
  *  Returns -1 if not found, otherwise 

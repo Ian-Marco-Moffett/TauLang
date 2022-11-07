@@ -2,6 +2,7 @@
 #define AST_H_
 
 #include <def.h>
+#include <stddef.h>
 
 typedef enum {
   A_ADD,
@@ -14,6 +15,7 @@ typedef enum {
   A_GLUE,
   A_RETURN,
   A_FUNCCALL,
+  A_ARG,
 } NODE_TYPE;
 
 
@@ -23,6 +25,7 @@ struct ast_node {
   struct ast_node* mid;
   struct ast_node* right;
   const char* text;
+  size_t extra_argument;            // Used for stuff like counting arguments.
 
   union {
     INTLIT val_int; 

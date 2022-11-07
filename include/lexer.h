@@ -26,6 +26,7 @@ typedef enum {
   TT_STR_CONSTANT,
   TT_RETURN,
   TT_U8,
+  TT_COMMA,
 } TOKEN_TYPE;
 
 struct token {
