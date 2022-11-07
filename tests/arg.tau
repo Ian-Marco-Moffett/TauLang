@@ -1,0 +1,5 @@
+bruh(u8 arg0, u8 arg1, u8 arg2) -> none {}
+
+global main() -> u8 {
+  return 0;
+}
