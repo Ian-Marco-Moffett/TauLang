@@ -6,7 +6,7 @@
 #include <symbol.h>
 #include <parser.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 FILE* g_outfile = NULL;
