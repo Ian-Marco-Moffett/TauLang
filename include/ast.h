@@ -17,6 +17,7 @@ typedef enum {
   A_FUNCCALL,
   A_ARG,
   A_ARG_PASS,
+  A_LOCAL_VAR,
 } NODE_TYPE;
 
 

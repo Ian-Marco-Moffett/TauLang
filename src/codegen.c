@@ -98,8 +98,18 @@ static void arg_pass(REG r, size_t arg_number) {
  */
 
 static inline void stack_alloc(struct symbol func) {
-  if (func.rbp_offset != 0)
-    fprintf(g_outfile, "\tsub rsp, %d\n", func.rbp_offset);
+  if (func.max_rbp != 0)
+    fprintf(g_outfile, "\tsub rsp, %d\n", func.max_rbp);
+}
+
+
+static REG load_local(size_t local_slot) {
+  REG r = alloc_reg();
+  struct symbol local = g_symtbl[get_cur_function()].local_symtbl[local_slot];
+  
+  // TODO: When adding 64 bit types, don't zero extend if type is 64 bit.
+  fprintf(g_outfile, "\tmov %s, qword [rbp-%d]\n", rregs[r], local.rbp_offset);
+  return r;
 }
 
 
@@ -133,6 +143,8 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
   REG leftreg, rightreg;
 
   switch (r->op) {
+    case A_LOCAL_VAR:
+      return load_local(r->id);
     case A_FUNC:
       /*
        *  Make this symbol global
@@ -143,16 +155,15 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
-
       stack_alloc(g_symtbl[r->id]);
 
-      // Actual code within the function.
-      if (r->left)
-        gen_code(r->left, NULL);
-  
       // Arguments.
       if (r->right)
         gen_code(r->right, r);
+
+      // Actual code within the function.
+      if (r->left)
+        gen_code(r->left, NULL); 
 
       func_epilouge();
       return -1;
@@ -168,20 +179,7 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         free((char*)r->text);
         r->text = NULL;
       }
-      return -1; 
-    case A_ARG:
-      /*
-       *  NOTE: The extra argument field in the AST
-       *        is used for the arg count when parsing
-       *        function arguments.
-       *
-       */
-      arg(&g_symtbl[r1->id].local_symtbl[r->id], r->extra_argument);
-
-      if (r->left)
-        gen_code(r->left, r1);
-        
-      return -1; 
+      return -1;  
     case A_ARG_PASS:
       if (r->left) {
         gen_code(r->left, NULL);
@@ -213,10 +211,23 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
     case A_INTLIT:
       return reg_load(r->val_int); 
     case A_FUNCCALL:
-      return call(r->id);
+      return call(r->id); 
     case A_RETURN:
       ret(leftreg);
       return -1;
+    case A_ARG:
+      /*
+       *  NOTE: The extra argument field in the AST
+       *        is used for the arg count when parsing
+       *        function arguments.
+       *
+       */
+      arg(&g_symtbl[r1->id].local_symtbl[r->id], r->extra_argument);
+
+      if (r->left)
+        gen_code(r->left, r1);
+        
+      return -1; 
   }
 
   return 0;

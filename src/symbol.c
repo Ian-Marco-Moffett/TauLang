@@ -30,17 +30,20 @@ size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype,
   glob->local_symtbl[glob->local_symtbl_size].stype = stype;
   glob->local_symtbl[glob->local_symtbl_size].ptype = ptype;
   glob->local_symtbl[glob->local_symtbl_size].parent = glob;
-  glob->local_symtbl[glob->local_symtbl_size++].local_symtbl = NULL;
-  glob->local_symtbl = realloc(glob->local_symtbl, sizeof(struct symbol) * (glob->local_symtbl_size + 2));
+
   
   switch (ptype) {
     case P_U8:
-      glob->rbp_offset += 1;      
+      glob->max_rbp += 1;
   }
 
   // Stack must be 8 byte aligned or else
   // you get a segfault on Linux.
-  glob->rbp_offset = ALIGN_UP(glob->rbp_offset, 8);
+  glob->max_rbp = ALIGN_UP(glob->max_rbp, 8);
+
+  glob->local_symtbl[glob->local_symtbl_size].rbp_offset = glob->max_rbp+8;
+  glob->local_symtbl[glob->local_symtbl_size++].local_symtbl = NULL;
+  glob->local_symtbl = realloc(glob->local_symtbl, sizeof(struct symbol) * (glob->local_symtbl_size + 2)); 
 
   return glob->local_symtbl_size - 1;
 }
@@ -49,6 +52,17 @@ size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype,
 int64_t lookup_glob(const char* name) {
   for (size_t i = 0; i < g_symtbl_size; ++i) {
     if (strcmp(g_symtbl[i].name, name) == 0) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+
+int64_t lookup_local(struct symbol* func, const char* name) {
+  for (size_t i = 0; i < func->local_symtbl_size; ++i) {
+    if (strcmp(func->local_symtbl[i].name, name) == 0) {
       return i;
     }
   }

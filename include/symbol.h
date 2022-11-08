@@ -23,10 +23,11 @@ struct symbol {
   uint8_t is_global : 1;
   struct symbol* local_symtbl;
   struct symbol* parent;            // For local symbol.
+  size_t rbp_offset;                // For local symbols as well.
   size_t local_symtbl_size;
   
   // For functions.
-  size_t rbp_offset;
+  size_t max_rbp;
   size_t arg_count;
 };
 
@@ -56,6 +57,7 @@ size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype,
  */
 
 int64_t lookup_glob(const char* name);
+int64_t lookup_local(struct symbol* func, const char* name);
 
 extern struct symbol* g_symtbl;
 

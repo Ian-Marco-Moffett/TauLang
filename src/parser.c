@@ -130,12 +130,18 @@ static struct ast_node* func_call(size_t slot) {
 }
 
 
+
 static struct ast_node* identifier(void) {
   size_t slot = lookup_glob(scanner_idbuf);
+  size_t local_slot = lookup_local(&g_symtbl[current_func_id], scanner_idbuf);
 
-  if (slot == -1) {
+  if (slot == -1 && local_slot == -1) {
     printf(PANIC "Symbol \"%s\" not found (line %d)\n", scanner_idbuf, last_token.line);
     exit(1);
+  }
+
+  if (local_slot != -1) {
+    return mkastleaf(A_LOCAL_VAR, local_slot);
   }
 
   SCAN;
