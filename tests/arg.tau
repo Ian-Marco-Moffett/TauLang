@@ -1,7 +1,7 @@
-bruh(u8 val) -> u8 {
-  return val;
+bruh(u8 arg0, u8 arg1) -> u8 {
+  return arg0+arg1;
 }
 
 global main() -> u8 {
-  return bruh(7);
+  return bruh(1, 1);
 }

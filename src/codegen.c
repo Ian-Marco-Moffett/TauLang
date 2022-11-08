@@ -6,7 +6,7 @@
 #include <symbol.h>
 #include <parser.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 
 FILE* g_outfile = NULL;
@@ -143,6 +143,19 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
   REG leftreg, rightreg;
 
   switch (r->op) {
+    case A_ARG:
+      /*
+       *  NOTE: The extra argument field in the AST
+       *        is used for the arg count when parsing
+       *        function arguments.
+       *
+       */
+      arg(&g_symtbl[r1->id].local_symtbl[r->id], r->extra_argument);
+
+      if (r->left)
+        gen_code(r->left, r1);
+        
+      return -1; 
     case A_LOCAL_VAR:
       return load_local(r->id);
     case A_FUNC:
@@ -155,6 +168,7 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         global(g_symtbl[r->id].name, S_FUNCTION);
 
       func_prologue(g_symtbl[r->id].name);
+
       stack_alloc(g_symtbl[r->id]);
 
       // Arguments.
@@ -214,19 +228,6 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
       return call(r->id); 
     case A_RETURN:
       ret(leftreg);
-      return -1;
-    case A_ARG:
-      /*
-       *  NOTE: The extra argument field in the AST
-       *        is used for the arg count when parsing
-       *        function arguments.
-       *
-       */
-      arg(&g_symtbl[r1->id].local_symtbl[r->id], r->extra_argument);
-
-      if (r->left)
-        gen_code(r->left, r1);
-        
       return -1; 
   }
 
