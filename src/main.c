@@ -8,9 +8,42 @@
 #include <symbol.h>
 #include <lexer.h>
 #include <ast.h>
+#include <argp.h>
 
 extern struct symbol* g_symtbl;
 extern size_t g_symtbl_size;
+
+size_t flags = 0;
+static const char* input_file = NULL;
+const char* output_file = NULL;
+
+static struct argp_option options[] = {
+  {"in", 'i', "INPUT", 0, "Input file to compile"},
+  {"out", 'o', "OUTPUT", 0, "Output file (example: a.out)"},
+  {"objonly", 'c', 0, 0, "Output an object file only"},
+  {0}
+};
+
+static error_t parse_opt(int key, char* arg, struct argp_state* state) {
+  switch (key) {
+    case 'i':
+      input_file = arg;
+      break;
+    case 'o':
+      output_file = arg;
+      break;
+    case 'c':
+      flags |= FLAG_OBJONLY;
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+  }
+
+  return 0;
+}
+
+
+static struct argp argp = {options, parse_opt, 0, 0, 0, 0, 0};
 
 static void cleanup(void) {
   for (size_t i = 0; i < g_symtbl_size; ++i) {
@@ -59,9 +92,14 @@ int main(int argc, char** argv) {
     printf("Error: Too few arguments!\n");
     return 1;
   }
+  argp_parse(&argp, argc, argv, 0, 0, 0);
 
-  // First (argv[1]) argument is filename.
-  g_fp = fopen(argv[1], "r");
+  if (input_file == NULL) {
+    printf("Error: Too few arguments!\n");
+    return 1;
+  }
+
+  g_fp = fopen(input_file, "r");
 
   if (g_fp == NULL) {
     perror("Error");

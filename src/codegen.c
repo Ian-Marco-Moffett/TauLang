@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <symbol.h>
 #include <parser.h>
+#include <def.h>
 
 #define DEBUG 1
 
@@ -251,7 +252,12 @@ void codegen_init(void) {
 void codegen_end(void) {
   fclose(g_outfile);
   char buf[450];
-  snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld /tmp/tauout.o /lib/taulang/crt0.o -o a.out");
+
+  if (flags & FLAG_OBJONLY) {
+    snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o %s", output_file != NULL ? output_file : "tau-out.o");
+  } else {
+    snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld /tmp/tauout.o /lib/taulang/crt0.o -o %s", output_file != NULL ? output_file : "a.out");
+  }
   system(buf);
 
 #if !DEBUG
