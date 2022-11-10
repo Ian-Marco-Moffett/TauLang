@@ -5,4 +5,4 @@
 ``make; make install_linux``
 
 ## Compiling a TauFile
-tau -i taufile.tau
+``tau -i taufile.tau``
