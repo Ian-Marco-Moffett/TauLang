@@ -36,7 +36,7 @@ static void insert(const char* _asm) {
 
 static size_t call(size_t slot) {
   REG r = alloc_reg();
-  fprintf(g_outfile, "\tcall f__%s\n", g_symtbl[slot].name);
+  fprintf(g_outfile, "\tcall $%s\n", g_symtbl[slot].name);
   fprintf(g_outfile, "\tmov %s, rax\n", rregs[r]);
   return r;
 }
@@ -115,28 +115,21 @@ static REG load_local(size_t local_slot) {
 
 
 static void _extern(size_t slot) {
-  fprintf(g_outfile, "extern %s\n", g_symtbl[slot].name);
+  if (g_symtbl[slot].stype == S_FUNCTION)
+    fprintf(g_outfile, "extern $%s\n", g_symtbl[slot].name);
 }
 
 
 void func_prologue(const char* name) {
   fprintf(g_outfile,
-    "f__%s:\n"
+    "$%s:\n"
     "\tpush rbp\n"
     "\tmov rbp, rsp\n", name);
 }
 
 
 void global(const char* name, SYM_STYPE stype) { 
-  const char* stype_prefix = "u__";
-
-  switch (stype) {
-    case S_FUNCTION:
-      stype_prefix = "f__";
-      break;
-  }
-
-  fprintf(g_outfile, "global %s%s\n", stype_prefix, name);
+  fprintf(g_outfile, "global $%s\n", name);
 }
 
 
@@ -256,7 +249,7 @@ void codegen_end(void) {
   if (flags & FLAG_OBJONLY) {
     snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o %s", output_file != NULL ? output_file : "tau-out.o");
   } else {
-    snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld /tmp/tauout.o /lib/taulang/crt0.o -o %s", output_file != NULL ? output_file : "a.out");
+    snprintf(buf, sizeof(buf), "nasm -felf64 /tmp/tauout.asm -o /tmp/tauout.o && ld -nostdlib /tmp/tauout.o /lib/taulang/crt0.o -o %s", output_file != NULL ? output_file : "a.out");
   }
   system(buf);
 

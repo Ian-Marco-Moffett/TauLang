@@ -69,7 +69,7 @@ static void cleanup(void) {
   }
 
   ast_destroy();
-  exit(1);
+  exit(0);
 }
 
 
