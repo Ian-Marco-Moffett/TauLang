@@ -113,6 +113,11 @@ static REG load_local(size_t local_slot) {
 }
 
 
+static void _extern(size_t slot) {
+  fprintf(g_outfile, "extern %s\n", g_symtbl[slot].name);
+}
+
+
 void func_prologue(const char* name) {
   fprintf(g_outfile,
     "f__%s:\n"
@@ -203,6 +208,9 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         leftreg = gen_code(r->mid, NULL);
         arg_pass(leftreg, r->val_int);
       }
+      return -1;
+    case A_EXTERN:
+      _extern(r->id);
       return -1;
   }
 

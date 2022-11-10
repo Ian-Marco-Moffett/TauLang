@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define ALIGN_UP(value, align)    (((value) + (align)-1) & ~((align)-1))
 
@@ -30,7 +31,6 @@ size_t local_symtbl_push(struct symbol* glob, const char* name, SYM_STYPE stype,
   glob->local_symtbl[glob->local_symtbl_size].stype = stype;
   glob->local_symtbl[glob->local_symtbl_size].ptype = ptype;
   glob->local_symtbl[glob->local_symtbl_size].parent = glob;
-
   
   switch (ptype) {
     case P_U8:

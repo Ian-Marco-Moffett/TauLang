@@ -163,6 +163,13 @@ static void keyword(struct token* t) {
         t->type = TT_ID;
       }
       break;
+    case 'e':
+      if (strcmp(scanner_idbuf, "extern") == 0) {
+        t->type = TT_EXTERN;
+      } else {
+        t->type = TT_ID;
+      }
+      break;
     case '_':
       if (strcmp(scanner_idbuf, "__asm") == 0) {
         t->type = TT_ASM;

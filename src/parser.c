@@ -81,7 +81,7 @@ static struct ast_node* func_call(size_t slot) {
     printf(PANIC "Trying to call \"%s\" which is not a function! (line %d)\n", g_symtbl[slot].name, last_token.line);
     exit(1);
   }
-
+  
   passert(TT_LPAREN, "(");
   SCAN;
 
@@ -343,6 +343,86 @@ static struct ast_node* compound_statement(void) {
 }
 
 /*
+ *  @param push_node is 1 if we should
+ *  push AST nodes.
+ *
+ *  @param symbol_slot: the symbol slot of the function whose args
+ *                      should be parsed.
+ *
+ *
+ */
+
+static struct ast_node* parse_func_args(size_t symbol_slot, uint8_t push_node) {
+  struct ast_node* arg_tree = NULL;
+  struct ast_node* left = NULL;
+  SYM_PTYPE current_ptype;
+
+  size_t arg_n = 0;
+  while (1) {
+    if (last_token.type == TT_RPAREN)
+      break;
+
+    g_symtbl[symbol_slot].arg_count++;
+
+    switch (last_token.type) {
+      case TT_U8:
+        current_ptype = P_U8;
+        break;
+      case TT_NONE:
+        printf(PANIC "Argument %d cannot be of type none (line %d).\n", arg_n, last_token.line);
+        exit(1);
+        break;
+      default:
+        printf(PANIC "Expected type for argument %d (line %d).\n", arg_n, last_token.line);
+        exit(1);
+    }
+
+    SCAN;
+
+    if (last_token.type != TT_ID) {
+      printf(PANIC "Expected identifier for argument %d (line %d).\n", arg_n, last_token.line);
+      exit(1);
+    }
+  
+    /*
+     *  Push this argument
+     *  to the function's
+     *  local symbol table
+     *  and create an 
+     *  AST node for this
+     *  argument.
+     *
+     */
+    size_t local_sym_id = local_symtbl_push(&g_symtbl[symbol_slot], scanner_idbuf, S_ARGUMENT, current_ptype);
+   
+    if (left == NULL && push_node) {
+      left = mkastleaf(A_ARG, local_sym_id);
+      left->extra_argument = arg_n;
+      arg_tree = left;
+    } else if (push_node) {
+      left->left = mkastleaf(A_ARG, local_sym_id);
+      left = left->left;
+      left->extra_argument = arg_n;
+    }
+
+    SCAN;
+
+    if (last_token.type == TT_COMMA) {
+      ++arg_n;
+      SCAN;
+      continue;
+    } else if (last_token.type == TT_RPAREN) {
+      break;
+    } else {
+      printf(PANIC "Syntax error (line %d).\n", last_token.line);
+      exit(1);
+    }
+  }
+  
+  return arg_tree;
+}
+
+/*
  *  Parse functions.
  *
  *  symbol() -> type
@@ -391,71 +471,8 @@ static struct ast_node* function(void) {
   passert(TT_LPAREN, "(");
   SCAN; 
 
-  struct ast_node* arg_tree = NULL;
-  struct ast_node* left = NULL;
-  SYM_PTYPE current_ptype;
 
-  size_t arg_n = 0;
-  while (1) {
-    if (last_token.type == TT_RPAREN)
-      break;
-
-    g_symtbl[symbol_slot].arg_count++;
-
-    switch (last_token.type) {
-      case TT_U8:
-        current_ptype = P_U8;
-        break;
-      case TT_NONE:
-        printf(PANIC "Argument %d cannot be of type none (line %d).\n", arg_n, last_token.line);
-        exit(1);
-        break;
-      default:
-        printf(PANIC "Expected type for argument %d (line %d).\n", arg_n, last_token.line);
-        exit(1);
-    }
-
-    SCAN;
-
-    if (last_token.type != TT_ID) {
-      printf(PANIC "Expected identifier for argument %d (line %d).\n", arg_n, last_token.line);
-      exit(1);
-    }
-  
-    /*
-     *  Push this argument
-     *  to the function's
-     *  local symbol table
-     *  and create an 
-     *  AST node for this
-     *  argument.
-     *
-     */
-    size_t local_sym_id = local_symtbl_push(&g_symtbl[symbol_slot], scanner_idbuf, S_ARGUMENT, current_ptype);
-   
-    if (left == NULL) {
-      left = mkastleaf(A_ARG, local_sym_id);
-      left->extra_argument = arg_n;
-      arg_tree = left;
-    } else {
-      left->left = mkastleaf(A_ARG, local_sym_id);
-      left = left->left;
-      left->extra_argument = arg_n;
-    }
-
-    SCAN;
-
-    if (last_token.type == TT_COMMA) {
-      ++arg_n;
-      SCAN;
-      continue;
-    } else if (last_token.type == TT_RPAREN) {
-      break;
-    } else {
-      printf(PANIC "Syntax error (line %d).\n", last_token.line);
-      exit(1);
-    }
-  }
+  struct ast_node* arg_tree = parse_func_args(symbol_slot, 1);
 
   passert(TT_RPAREN, ")");
   SCAN;
@@ -484,6 +501,59 @@ static struct ast_node* function(void) {
   return mkastnode(A_FUNC, block_statement, NULL, arg_tree, symbol_slot);
 }
 
+
+static struct ast_node* parse_extern_function(void) {
+  size_t symbol_slot = symtbl_push_glob(scanner_idbuf, S_FUNCTION);
+  g_symtbl[symbol_slot].local_symtbl = malloc(sizeof(struct symbol));
+
+  SCAN;
+  
+  parse_func_args(symbol_slot, 0);
+
+  passert(TT_RPAREN, ")");
+  SCAN;
+
+  passert(TT_MINUS, "->");
+  SCAN;
+
+  passert(TT_GT, "->");
+  SCAN;
+
+  switch (last_token.type) {
+    case TT_NONE:
+      g_symtbl[symbol_slot].ptype = P_NONE;
+      break;
+    case TT_U8:
+      g_symtbl[symbol_slot].ptype = P_U8;
+      break;
+    default:
+      printf(PANIC "Invalid function type (line %d).\n", last_token.line);
+      exit(1);
+  }
+
+  SCAN;
+  passert(TT_SEMI, ";");
+
+  SCAN;
+  return mkastleaf(A_EXTERN, symbol_slot);
+}
+
+static struct ast_node* parse_extern(void) {
+  SCAN;
+  passert(TT_ID, "identifier");
+
+  SCAN;
+
+  if (last_token.type == TT_LPAREN) {
+    return parse_extern_function();
+  }
+
+  size_t symbol_slot = symtbl_push_glob(scanner_idbuf, S_FUNCTION);
+  passert(TT_SEMI, ";");
+  SCAN;
+  return mkastleaf(A_EXTERN, symbol_slot);
+}
+
 size_t get_cur_function(void) {
   return current_func_id;
 }
@@ -492,9 +562,18 @@ void parse(void) {
   SCAN;
   codegen_init();
   init_symtbls();
-  while (!(is_eof)) {
-    struct ast_node* tree = function();
 
+  while (!(is_eof)) {
+    struct ast_node* tree = NULL;
+    switch (last_token.type) {
+      case TT_EXTERN:
+        tree = parse_extern();
+        break;
+    }
+
+    if (tree == NULL)
+      tree = function();
+  
     if (tree != NULL)
       gen_code(tree, NULL);
     else

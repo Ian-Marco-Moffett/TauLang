@@ -27,6 +27,7 @@ typedef enum {
   TT_RETURN,
   TT_U8,
   TT_COMMA,
+  TT_EXTERN,
 } TOKEN_TYPE;
 
 struct token {
