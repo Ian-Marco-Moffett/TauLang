@@ -282,6 +282,12 @@ static struct ast_node* type(void) {
 
   /* We are going to assume that we have a variable here */
   struct symbol* gsym = &g_symtbl[get_cur_function()];
+
+  if (lookup_local(&g_symtbl[current_func_id], scanner_idbuf) != -1) {
+    printf(PANIC "Local symbol %s already declared! (line %d)\n", scanner_idbuf, last_token.line);
+    exit(1);
+  }
+
   size_t symbol_slot = local_symtbl_push(gsym, scanner_idbuf, S_VARIABLE, symbol_ptype);
   struct symbol* local_sym = &gsym->local_symtbl[symbol_slot];
   local_sym->ptype = P_U8;
