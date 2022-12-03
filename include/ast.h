@@ -18,6 +18,7 @@ typedef enum {
   A_ARG,
   A_ARG_PASS,
   A_LOCAL_VAR,
+  A_LOCAL_VAR_CREATION,
   A_EXTERN,
 } NODE_TYPE;
 

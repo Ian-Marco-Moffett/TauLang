@@ -241,6 +241,9 @@ uint8_t scan(struct token* t) {
     case ',':
       t->type = TT_COMMA;
       return 1;
+    case '=':
+      t->type = TT_EQUALS;
+      return 1;
     case '"':
       scan_str();
       t->type = TT_STR_CONSTANT;

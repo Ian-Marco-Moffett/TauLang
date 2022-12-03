@@ -264,6 +264,50 @@ static struct ast_node* return_statement(void) {
   return mkastunary(A_RETURN, expr, 0);
 }
 
+
+static struct ast_node* type(void) {
+  /* P_NONE shall be invalid here */
+  SYM_PTYPE symbol_ptype = P_NONE;
+
+  /* Check the token and get the correct PTYPE for it */
+  switch (last_token.type) {
+    case TT_U8:
+      symbol_ptype = P_U8;
+      break;
+  }
+
+  /* There must be an identifier after the typename */
+  SCAN;
+  passert(TT_ID, "identifier");
+
+  /* We are going to assume that we have a variable here */
+  struct symbol* gsym = &g_symtbl[get_cur_function()];
+  size_t symbol_slot = local_symtbl_push(gsym, scanner_idbuf, S_VARIABLE, symbol_ptype);
+  struct symbol* local_sym = &gsym->local_symtbl[symbol_slot];
+  local_sym->ptype = P_U8;
+  SCAN;
+
+  /* Now, we can either have a ';' or '=' after the identifier */
+  if (last_token.type != TT_SEMI && last_token.type != TT_EQUALS) {
+    printf(PANIC "Expected '=' or ';' after identifier (line %d)\n", last_token.line);
+    exit(1);
+  }
+
+  if (last_token.type == TT_SEMI) {
+    local_sym->is_initialized = 0;
+    SCAN;
+    return mkastleaf(A_LOCAL_VAR_CREATION, symbol_slot);
+  }
+
+  /* We are still going, there must be an expression after */
+  SCAN;
+  struct ast_node* expr = binexpr();
+  SCAN;
+  local_sym->is_initialized = 1;
+  return mkastunary(A_LOCAL_VAR_CREATION, expr, symbol_slot);
+}
+
+
 /*
  *  Parse a compound statement.
  * 
@@ -324,6 +368,9 @@ static struct ast_node* compound_statement(void) {
         break;
       case TT_ID:
         tree = identifier();
+        break;
+      case TT_U8:
+        tree = type();
         break;
       default:
         printf(PANIC "Invalid token (line %d)\n", last_token.line);

@@ -7,7 +7,8 @@
 // Structural types.
 typedef enum {
   S_FUNCTION,
-  S_ARGUMENT
+  S_ARGUMENT,
+  S_VARIABLE
 } SYM_STYPE;
 
 // Primitive types.
@@ -29,6 +30,9 @@ struct symbol {
   // For functions.
   size_t max_rbp;
   size_t arg_count;
+
+  // For variables.
+  uint8_t is_initialized : 1;
 };
 
 

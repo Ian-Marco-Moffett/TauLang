@@ -1,0 +1,4 @@
+global main() -> u8 {
+  u8 var = 2;
+  return var;
+}

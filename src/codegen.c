@@ -108,9 +108,15 @@ static REG load_local(size_t local_slot) {
   REG r = alloc_reg();
   struct symbol local = g_symtbl[get_cur_function()].local_symtbl[local_slot];
   
-  // TODO: When adding 64 bit types, don't zero extend if type is 64 bit.
   fprintf(g_outfile, "\tmov %s, qword [rbp-%d]\n", rregs[r], local.rbp_offset);
   return r;
+}
+
+
+static void load_local_variable(size_t local_slot, REG r) {
+  struct symbol local = g_symtbl[get_cur_function()].local_symtbl[local_slot];
+  /* TODO: Change this when more types come */
+  fprintf(g_outfile, "\tmov qword [rbp-%d], %s\n", local.rbp_offset, rregs[r]);
 }
 
 
@@ -193,6 +199,15 @@ int16_t gen_code(struct ast_node* r, struct ast_node* r1) {
         r->text = NULL;
       }
       return -1;  
+    case A_LOCAL_VAR_CREATION:
+      {
+        struct symbol* local = &g_symtbl[get_cur_function()].local_symtbl[r->id];
+        if (local->is_initialized) {
+          leftreg = gen_code(r->left, NULL);
+          load_local_variable(r->id, leftreg);
+        }
+      }
+      return -1;
     case A_ARG_PASS:
       if (r->left) {
         gen_code(r->left, NULL);
