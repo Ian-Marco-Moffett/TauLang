@@ -284,7 +284,7 @@ static struct ast_node* type(void) {
   struct symbol* gsym = &g_symtbl[get_cur_function()];
 
   if (lookup_local(&g_symtbl[current_func_id], scanner_idbuf) != -1) {
-    printf(PANIC "Local symbol %s already declared! (line %d)\n", scanner_idbuf, last_token.line);
+    printf(PANIC "Local symbol \"%s\" already declared! (line %d)\n", scanner_idbuf, last_token.line);
     exit(1);
   }
 
